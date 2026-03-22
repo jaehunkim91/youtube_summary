@@ -22,20 +22,18 @@ YouTube 영상의 자막을 자동으로 추출하고, Claude AI가 챕터별로
 
 ### 1. 백엔드 설정
 ```bash
-cd backend
-pip install -r requirements.txt
-cp .env .env.local  # 또는 직접 .env 파일 생성
+cd /path/to/youtube_summary
+pip install -r backend/requirements.txt
 ```
 
-`.env` 파일에 API 키 입력:
+프로젝트 루트의 `.env` 파일에 API 키 입력:
 ```
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 백엔드 실행:
 ```bash
-cd backend
-uvicorn main:app --reload --port 8000
+.venv/bin/python -m uvicorn backend.main:app --reload
 ```
 
 ### 2. 프론트엔드 실행 (별도 터미널)
@@ -54,7 +52,7 @@ npm run dev
 cd frontend && npm run build
 
 # 백엔드로 서빙 (http://localhost:8000)
-cd backend && uvicorn main:app --port 8000
+.venv/bin/python -m uvicorn backend.main:app
 ```
 
 ## API 엔드포인트
