@@ -8,8 +8,6 @@ class StockMentionResponse(BaseModel):
     sentiment: str
     opinion: str
 
-    model_config = {"from_attributes": True}
-
 
 class VideoResponse(BaseModel):
     video_id: str
