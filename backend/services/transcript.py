@@ -2,9 +2,15 @@
 import re
 import subprocess
 import json
+import logging
+import tempfile
+import os
 from dataclasses import dataclass
 from typing import Optional
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ChapterMeta:
@@ -32,49 +38,91 @@ def extract_video_id(url: str) -> str:
     raise ValueError(f"Cannot extract video ID from URL: {url}")
 
 def get_transcript(video_id: str) -> TranscriptResult:
+    # Primary: youtube-transcript-api 1.x
     try:
-        entries = YouTubeTranscriptApi.get_transcript(video_id, languages=["ko", "en"])
+        api = YouTubeTranscriptApi()
+        fetched = api.fetch(video_id, languages=["ko", "en"])
+        entries = fetched.to_raw_data()
         text = " ".join(e["text"] for e in entries)
         return TranscriptResult(text=text, chapters=None)
-    except (TranscriptsDisabled, NoTranscriptFound):
-        pass
-    except Exception:
-        pass
+    except (TranscriptsDisabled, NoTranscriptFound) as e:
+        logger.info(f"Primary transcript unavailable for {video_id}: {e}")
+    except Exception as e:
+        logger.warning(f"Primary transcript failed for {video_id}: {e}")
 
+    # Fallback: yt-dlp
     try:
         return _get_transcript_yt_dlp(video_id)
     except Exception as e:
+        logger.warning(f"yt-dlp fallback failed for {video_id}: {e}")
         raise TranscriptUnavailableError("이 영상의 자막을 가져올 수 없습니다") from e
 
 def _get_transcript_yt_dlp(video_id: str) -> TranscriptResult:
     url = f"https://www.youtube.com/watch?v={video_id}"
-    result = subprocess.run(
-        ["yt-dlp", "--write-auto-sub", "--sub-lang", "ko,en",
-         "--skip-download", "--print-json", url],
-        capture_output=True, text=True, timeout=60
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"yt-dlp failed: {result.stderr}")
-    info = json.loads(result.stdout.split("\n")[0])
-    chapters = None
-    if info.get("chapters"):
-        chapters = [
-            ChapterMeta(
-                title=c["title"],
-                timestamp=_seconds_to_timestamp(c["start_time"]),
-                start_seconds=c["start_time"],
-            )
-            for c in info["chapters"]
-        ]
-    subtitles = info.get("automatic_captions", {}) or info.get("subtitles", {})
-    text = ""
-    for lang in ["ko", "en"]:
-        if lang in subtitles:
-            text = f"[Transcript available for video {video_id}]"
-            break
-    if not text:
-        raise RuntimeError("No subtitle data found")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Get video metadata (chapters) and download subtitle files
+        result = subprocess.run(
+            [
+                "yt-dlp",
+                "--write-auto-sub", "--write-sub",
+                "--sub-lang", "ko,en",
+                "--sub-format", "json3",
+                "--skip-download",
+                "--print-json",
+                "-o", os.path.join(tmpdir, "%(id)s"),
+                url,
+            ],
+            capture_output=True, text=True, timeout=60
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"yt-dlp failed: {result.stderr}")
+
+        info = json.loads(result.stdout.split("\n")[0])
+
+        # Extract chapter metadata
+        chapters = None
+        if info.get("chapters"):
+            chapters = [
+                ChapterMeta(
+                    title=c["title"],
+                    timestamp=_seconds_to_timestamp(c["start_time"]),
+                    start_seconds=c["start_time"],
+                )
+                for c in info["chapters"]
+            ]
+
+        # Find and parse downloaded subtitle file
+        text = _read_subtitle_file(tmpdir, video_id)
+        if not text:
+            raise RuntimeError("No subtitle text extracted")
+
     return TranscriptResult(text=text, chapters=chapters)
+
+def _read_subtitle_file(directory: str, video_id: str) -> str:
+    """Read downloaded subtitle files and return plain text."""
+    for lang in ["ko", "en"]:
+        for suffix in [f".{lang}.json3", f".{lang}-orig.json3"]:
+            path = os.path.join(directory, f"{video_id}{suffix}")
+            if os.path.exists(path):
+                return _parse_json3_subtitle(path)
+    # Fallback: try any .json3 file in the directory
+    for fname in os.listdir(directory):
+        if fname.endswith(".json3"):
+            return _parse_json3_subtitle(os.path.join(directory, fname))
+    return ""
+
+def _parse_json3_subtitle(path: str) -> str:
+    """Parse yt-dlp json3 subtitle format to plain text."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    parts = []
+    for event in data.get("events", []):
+        for seg in event.get("segs", []):
+            t = seg.get("utf8", "").strip()
+            if t and t != "\n":
+                parts.append(t)
+    return " ".join(parts)
 
 def _seconds_to_timestamp(seconds: float) -> str:
     m, s = divmod(int(seconds), 60)

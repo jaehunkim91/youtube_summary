@@ -3,28 +3,33 @@ from unittest.mock import patch, MagicMock
 import pytest
 from backend.services.transcript import get_transcript, TranscriptResult
 
+def _mock_fetched(entries):
+    mock = MagicMock()
+    mock.to_raw_data.return_value = entries
+    return mock
+
 def test_get_transcript_primary_success():
     mock_entries = [
         {"text": "Hello world", "start": 0.0},
         {"text": "This is a test", "start": 5.0},
     ]
-    with patch("backend.services.transcript.YouTubeTranscriptApi.get_transcript", return_value=mock_entries):
+    with patch("backend.services.transcript.YouTubeTranscriptApi.fetch", return_value=_mock_fetched(mock_entries)):
         result = get_transcript("dQw4w9WgXcQ")
     assert isinstance(result, TranscriptResult)
     assert "Hello world" in result.text
-    assert result.chapters is None  # no chapter metadata from basic transcript
+    assert result.chapters is None
 
 def test_get_transcript_fallback_to_ytdlp():
-    from youtube_transcript_api import TranscriptsDisabled
-    with patch("backend.services.transcript.YouTubeTranscriptApi.get_transcript", side_effect=TranscriptsDisabled("id")):
+    from youtube_transcript_api._errors import TranscriptsDisabled
+    with patch("backend.services.transcript.YouTubeTranscriptApi.fetch", side_effect=TranscriptsDisabled("id")):
         with patch("backend.services.transcript._get_transcript_yt_dlp", return_value=TranscriptResult(text="fallback text", chapters=None)):
             result = get_transcript("dQw4w9WgXcQ")
     assert result.text == "fallback text"
 
 def test_get_transcript_both_fail():
-    from youtube_transcript_api import TranscriptsDisabled
+    from youtube_transcript_api._errors import TranscriptsDisabled
     from backend.services.transcript import TranscriptUnavailableError
-    with patch("backend.services.transcript.YouTubeTranscriptApi.get_transcript", side_effect=TranscriptsDisabled("id")):
+    with patch("backend.services.transcript.YouTubeTranscriptApi.fetch", side_effect=TranscriptsDisabled("id")):
         with patch("backend.services.transcript._get_transcript_yt_dlp", side_effect=Exception("yt-dlp failed")):
             with pytest.raises(TranscriptUnavailableError):
                 get_transcript("dQw4w9WgXcQ")
