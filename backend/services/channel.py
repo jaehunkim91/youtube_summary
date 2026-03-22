@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,8 @@ def parse_channel_name(channel_url: str) -> str:
 
 def load_channels() -> list[str]:
     """Read channels.json. Returns [] if file missing or empty. Raises JSONDecodeError on bad JSON."""
-    path = Path(os.getenv("CHANNELS_FILE", Path(__file__).parent.parent.parent / "channels.json"))
+    env_val = os.getenv("CHANNELS_FILE")
+    path = Path(env_val) if env_val else Path(__file__).parent.parent.parent / "channels.json"
     if not path.exists():
         return []
     try:
@@ -44,7 +45,7 @@ def load_channels() -> list[str]:
 
 def fetch_recent_videos(channel_url: str, days: int = 1) -> list[VideoInfo]:
     """Fetch videos uploaded within the last `days` days from a channel."""
-    dateafter = (datetime.utcnow() - timedelta(days=days)).strftime("%Y%m%d")
+    dateafter = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)).strftime("%Y%m%d")
 
     result = subprocess.run(
         [
@@ -74,7 +75,7 @@ def fetch_recent_videos(channel_url: str, days: int = 1) -> list[VideoInfo]:
         try:
             published_at = datetime.strptime(upload_date, "%Y%m%d")
         except ValueError:
-            published_at = datetime.utcnow()
+            published_at = datetime.now(timezone.utc).replace(tzinfo=None)
         videos.append(VideoInfo(video_id=video_id, title=title, published_at=published_at))
 
     return videos
