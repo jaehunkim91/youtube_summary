@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -60,10 +61,8 @@ def analyze_video(transcript: str) -> AnalysisResult:
 
     raw = response.content[0].text.strip()
     # Strip markdown code fences if present
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
+    raw = re.sub(r'^```[a-zA-Z]*\n?', '', raw)
+    raw = re.sub(r'\n?```$', '', raw)
     raw = raw.strip()
 
     try:
