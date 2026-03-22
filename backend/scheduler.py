@@ -1,7 +1,6 @@
 # backend/scheduler.py
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ def run_fetch_job():
 
                 try:
                     transcript = get_transcript(video.video_id)
-                except (TranscriptUnavailableError, Exception) as e:
+                except Exception as e:
                     logger.warning(f"자막 추출 실패 {video.video_id}: {e}")
                     continue
 
