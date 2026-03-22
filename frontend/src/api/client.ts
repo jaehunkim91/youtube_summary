@@ -1,52 +1,46 @@
 // frontend/src/api/client.ts
 
-export interface Chapter {
-  id: number
+export interface StockMention {
+  name: string
+  sentiment: 'positive' | 'negative' | 'neutral'
+  opinion: string
+}
+
+export interface Video {
+  video_id: string
   title: string
-  timestamp: string
-  content: string
-  order: number
+  published_at: string
+  summary: string | null
+  stocks: StockMention[]
 }
 
-export interface SummaryResponse {
-  id: number
-  video_title: string
-  video_id: string
-  youtube_url: string
-  created_at: string
-  chapters: Chapter[]
+export interface ChannelFeedItem {
+  channel_name: string
+  channel_url: string
+  video_count: number
+  latest_video_title: string | null
+  latest_video_at: string | null
 }
 
-export interface HistoryItem {
-  id: number
-  video_title: string
-  video_id: string
-  youtube_url: string
-  created_at: string
-  chapter_count: number
+export interface ChannelDetail {
+  channel_name: string
+  channel_url: string | null
+  videos: Video[]
 }
 
-export async function summarize(url: string): Promise<SummaryResponse> {
-  const resp = await fetch('/api/summarize', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
-  })
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ detail: '알 수 없는 오류가 발생했습니다' }))
-    throw new Error(err.detail ?? '요약에 실패했습니다')
-  }
+export async function getFeed(): Promise<ChannelFeedItem[]> {
+  const resp = await fetch('/api/feed')
+  if (!resp.ok) throw new Error('피드를 불러오지 못했습니다')
   return resp.json()
 }
 
-export async function getHistory(): Promise<HistoryItem[]> {
-  const resp = await fetch('/api/history')
-  if (!resp.ok) throw new Error('히스토리를 불러오지 못했습니다')
+export async function getChannelFeed(channelName: string): Promise<ChannelDetail> {
+  const resp = await fetch(`/api/feed/${encodeURIComponent(channelName)}`)
+  if (!resp.ok) throw new Error('채널 피드를 불러오지 못했습니다')
   return resp.json()
 }
 
-export async function getHistoryDetail(id: number): Promise<SummaryResponse> {
-  const resp = await fetch(`/api/history/${id}`)
-  if (!resp.ok) throw new Error('요약을 불러오지 못했습니다')
-  return resp.json()
+export async function triggerRefresh(): Promise<void> {
+  const resp = await fetch('/api/refresh', { method: 'POST' })
+  if (!resp.ok) throw new Error('새로고침 요청에 실패했습니다')
 }

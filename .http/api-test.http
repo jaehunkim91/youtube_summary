@@ -1,0 +1,14 @@
+### 기본 URL 설정
+@baseUrl = http://localhost:8000
+
+###
+# 전체 채널 피드 조회
+GET {{baseUrl}}/api/feed
+
+###
+# 특정 채널 피드 조회 (channel_name은 @핸들에서 @ 제거)
+GET {{baseUrl}}/api/feed/GODofIT
+
+###
+# 수동 새로고침 트리거
+POST {{baseUrl}}/api/refresh
