@@ -6,7 +6,7 @@ os.environ["DISABLE_SCHEDULER"] = "true"
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session as OrmSession
 
 
 @pytest.fixture
@@ -32,10 +32,9 @@ def client(db_engine):
     from backend.main import app
 
     _, connection = db_engine
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=connection)
 
     def override_get_db():
-        db = TestingSessionLocal()
+        db = OrmSession(bind=connection)
         try:
             yield db
         finally:

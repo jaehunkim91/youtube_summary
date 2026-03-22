@@ -1,5 +1,5 @@
 # backend/db/models.py
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -18,7 +18,7 @@ class StockVideo(Base):
     video_title = Column(String, nullable=False)
     published_at = Column(DateTime, nullable=False)
     summary = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.utcnow())
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
     mentions = relationship(
         "StockMention",

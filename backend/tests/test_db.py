@@ -1,14 +1,14 @@
 # backend/tests/test_db.py
 import pytest
 from datetime import datetime
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from backend.db.models import StockVideo, StockMention
 
 
 def test_stock_video_create(db_engine):
     _, connection = db_engine
-    Session = sessionmaker(bind=connection)
-    db = Session()
+    db = Session(bind=connection)
 
     video = StockVideo(
         channel_url="https://www.youtube.com/@GODofIT",
@@ -30,8 +30,7 @@ def test_stock_video_create(db_engine):
 
 def test_stock_mention_cascade_delete(db_engine):
     _, connection = db_engine
-    Session = sessionmaker(bind=connection)
-    db = Session()
+    db = Session(bind=connection)
 
     video = StockVideo(
         channel_url="https://www.youtube.com/@GODofIT",
@@ -61,9 +60,7 @@ def test_stock_mention_cascade_delete(db_engine):
 
 def test_video_id_unique_constraint(db_engine):
     _, connection = db_engine
-    Session = sessionmaker(bind=connection)
-    db = Session()
-    from sqlalchemy.exc import IntegrityError
+    db = Session(bind=connection)
 
     video1 = StockVideo(
         channel_url="https://www.youtube.com/@GODofIT",
