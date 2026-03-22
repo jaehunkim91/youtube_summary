@@ -1,31 +1,41 @@
 # backend/db/models.py
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
+
 
 class Base(DeclarativeBase):
     pass
 
-class Summary(Base):
-    __tablename__ = "summaries"
-    __table_args__ = (UniqueConstraint("youtube_url"),)
+
+class StockVideo(Base):
+    __tablename__ = "stock_videos"
 
     id = Column(Integer, primary_key=True, index=True)
-    youtube_url = Column(String, nullable=False, unique=True)
+    channel_url = Column(String, nullable=False)
+    channel_name = Column(String, nullable=False)
+    video_id = Column(String, nullable=False, unique=True)
     video_title = Column(String, nullable=False)
-    video_id = Column(String, nullable=False)
+    published_at = Column(DateTime, nullable=False)
+    summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.utcnow())
 
-    chapters = relationship("Chapter", back_populates="summary", cascade="all, delete-orphan", order_by="Chapter.order")
+    mentions = relationship(
+        "StockMention",
+        back_populates="stock_video",
+        cascade="all, delete-orphan",
+    )
 
-class Chapter(Base):
-    __tablename__ = "chapters"
+
+class StockMention(Base):
+    __tablename__ = "stock_mentions"
 
     id = Column(Integer, primary_key=True, index=True)
-    summary_id = Column(Integer, ForeignKey("summaries.id", ondelete="CASCADE"), nullable=False)
-    title = Column(String, nullable=False)
-    timestamp = Column(String, nullable=False)
-    content = Column(String, nullable=False)
-    order = Column(Integer, nullable=False)
+    stock_video_id = Column(
+        Integer, ForeignKey("stock_videos.id", ondelete="CASCADE"), nullable=False
+    )
+    stock_name = Column(String, nullable=False)
+    sentiment = Column(String, nullable=False)  # positive / negative / neutral
+    opinion = Column(Text, nullable=False)
 
-    summary = relationship("Summary", back_populates="chapters")
+    stock_video = relationship("StockVideo", back_populates="mentions")
