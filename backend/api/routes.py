@@ -1,11 +1,12 @@
 # backend/api/routes.py
 import json
 import logging
+from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.db.database import get_db
-from backend.db.models import StockVideo, StockMention
+from backend.db.models import StockVideo
 from backend.api.schemas import (
     ChannelFeedItem,
     ChannelDetailResponse,
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api")
 
 
-def _dt_to_str(dt) -> str:
+def _dt_to_str(dt) -> Optional[str]:
     """Convert naive UTC datetime to ISO 8601 string with Z suffix."""
     return dt.isoformat() + "Z" if dt else None
 
