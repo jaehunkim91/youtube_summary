@@ -8,6 +8,7 @@ interface Props {
 
 export function VideoCard({ video }: Props) {
   const date = new Date(video.published_at).toLocaleDateString('ko-KR', {
+    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   })
@@ -42,8 +43,8 @@ export function VideoCard({ video }: Props) {
 
       {video.stocks.length > 0 && (
         <div style={{ marginTop: '8px', borderTop: '1px solid #f0f0f0', paddingTop: '8px' }}>
-          {video.stocks.map((s, i) => (
-            <StockBadge key={i} name={s.name} sentiment={s.sentiment} opinion={s.opinion} />
+          {video.stocks.map((s) => (
+            <StockBadge key={s.name} name={s.name} sentiment={s.sentiment} opinion={s.opinion} />
           ))}
         </div>
       )}

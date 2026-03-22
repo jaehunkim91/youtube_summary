@@ -1,5 +1,5 @@
 // frontend/src/App.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChannelList } from './components/ChannelList'
 import { VideoCard } from './components/VideoCard'
 import { getFeed, getChannelFeed, triggerRefresh } from './api/client'
@@ -26,17 +26,17 @@ export default function App() {
     }
   }
 
-  const loadFeed = async () => {
+  const loadFeed = useCallback(async (currentSelected: string | null = null) => {
     try {
       const data = await getFeed()
       setChannels(data)
-      if (data.length > 0 && !selected) {
+      if (data.length > 0 && !currentSelected) {
         selectChannel(data[0].channel_name)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '피드 로드 실패')
     }
-  }
+  }, [])
 
   const handleRefresh = async () => {
     setRefreshing(true)
@@ -44,7 +44,7 @@ export default function App() {
     try {
       await triggerRefresh()
       setTimeout(() => {
-        loadFeed()
+        loadFeed(selected)
         if (selected) selectChannel(selected)
         setRefreshing(false)
       }, 2000)
@@ -54,7 +54,7 @@ export default function App() {
     }
   }
 
-  useEffect(() => { loadFeed() }, [])
+  useEffect(() => { loadFeed() }, [loadFeed])
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif' }}>
