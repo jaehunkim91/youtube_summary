@@ -7,7 +7,6 @@ os.environ["DISABLE_SCHEDULER"] = "true"
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -28,8 +27,9 @@ def db_engine():
 
 @pytest.fixture
 def client(db_engine):
-    from backend.db.database import get_db  # deferred import
-    from backend.main import app             # deferred: DISABLE_SCHEDULER must be set first
+    from fastapi.testclient import TestClient  # deferred import
+    from backend.db.database import get_db
+    from backend.main import app
 
     _, connection = db_engine
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=connection)
