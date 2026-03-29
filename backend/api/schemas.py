@@ -12,7 +12,9 @@ class StockMentionResponse(BaseModel):
 class VideoResponse(BaseModel):
     video_id: str
     title: str
-    published_at: str  # ISO 8601 UTC string — always constructed manually, not from ORM
+    title_ko: Optional[str]
+    published_at: str   # 업로드 시각 (ISO 8601 UTC)
+    analyzed_at: str    # 분석 완료 시각 (ISO 8601 UTC)
     summary: Optional[str]
     stocks: list[StockMentionResponse]
 
@@ -22,6 +24,7 @@ class ChannelFeedItem(BaseModel):
     channel_url: str
     video_count: int
     latest_video_title: Optional[str]
+    latest_video_title_ko: Optional[str]
     latest_video_at: Optional[str]  # ISO 8601 UTC string
 
 
@@ -33,3 +36,23 @@ class ChannelDetailResponse(BaseModel):
 
 class RefreshResponse(BaseModel):
     status: str
+
+
+class StockFeedItem(BaseModel):
+    name: str
+    mention_count: int
+    latest_mentioned_at: Optional[str]
+
+
+class StockOpinionItem(BaseModel):
+    channel_name: str
+    sentiment: str
+    opinion: str
+    video_title: str
+    video_title_ko: Optional[str]
+    published_at: str
+
+
+class StockDetailResponse(BaseModel):
+    stock_name: str
+    opinions: list[StockOpinionItem]

@@ -6,13 +6,13 @@ interface Props {
   video: Video
 }
 
-export function VideoCard({ video }: Props) {
-  const date = new Date(video.published_at).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleString('ko-KR', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
   })
 
+export function VideoCard({ video }: Props) {
   return (
     <div style={{
       border: '1px solid #e0e0e0',
@@ -28,11 +28,12 @@ export function VideoCard({ video }: Props) {
           rel="noreferrer"
           style={{ fontWeight: 600, color: '#1a1a1a', textDecoration: 'none', fontSize: '15px' }}
         >
-          📹 {video.title}
+          📹 {video.title_ko || video.title}
         </a>
-        <span style={{ color: '#888', fontSize: '13px', whiteSpace: 'nowrap', marginLeft: '12px' }}>
-          {date}
-        </span>
+        <div style={{ color: '#888', fontSize: '12px', whiteSpace: 'nowrap', marginLeft: '12px', textAlign: 'right', lineHeight: '1.6' }}>
+          <div>📅 업로드 {fmt(video.published_at)}</div>
+          <div>🔍 분석 {fmt(video.analyzed_at)}</div>
+        </div>
       </div>
 
       {video.summary && (

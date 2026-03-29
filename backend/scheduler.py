@@ -1,5 +1,6 @@
 # backend/scheduler.py
 import logging
+import time
 from apscheduler.schedulers.background import BackgroundScheduler
 
 logger = logging.getLogger(__name__)
@@ -9,10 +10,11 @@ scheduler = BackgroundScheduler()
 
 def run_fetch_job():
     """Fetch recent videos from all channels and analyze them."""
+    from datetime import datetime, timezone
     from backend.db.database import SessionLocal
     from backend.db.models import StockVideo, StockMention
-    from backend.services.channel import fetch_recent_videos, load_channels, parse_channel_name, ChannelFetchError
-    from backend.services.transcript import get_transcript, TranscriptUnavailableError
+    from backend.services.channel import fetch_recent_videos, load_channels, parse_channel_name, ChannelFetchError, get_video_duration
+    from backend.services.transcript import get_transcript
     from backend.services.stock_analyzer import analyze_video, StockAnalyzerError
     from sqlalchemy.exc import IntegrityError
 
@@ -28,8 +30,9 @@ def run_fetch_job():
 
     db = SessionLocal()
     try:
-        for channel_url in channels:
-            channel_name = parse_channel_name(channel_url)
+        for entry in channels:
+            channel_url = entry["url"]
+            channel_name = entry["name"]
             try:
                 videos = fetch_recent_videos(channel_url)
             except ChannelFetchError as e:
@@ -42,6 +45,11 @@ def run_fetch_job():
                 if existing:
                     continue
 
+                duration = get_video_duration(video.video_id)
+                if duration is not None and (duration <= 60 or duration > 1800):
+                    logger.info(f"영상 길이 필터링 스킵: {video.title} ({duration}초)")
+                    continue
+
                 try:
                     transcript = get_transcript(video.video_id)
                 except Exception as e:
@@ -49,7 +57,7 @@ def run_fetch_job():
                     continue
 
                 try:
-                    result = analyze_video(transcript.text)
+                    result = analyze_video(transcript.text, video.title)
                 except StockAnalyzerError as e:
                     logger.warning(f"분석 실패 {video.video_id}: {e}")
                     continue
@@ -59,7 +67,8 @@ def run_fetch_job():
                     channel_name=channel_name,
                     video_id=video.video_id,
                     video_title=video.title,
-                    published_at=video.published_at,
+                    video_title_ko=result.title_ko or None,
+                    published_at=video.published_at or datetime.now(timezone.utc).replace(tzinfo=None),
                     summary=result.summary,
                 )
                 db.add(stock_video)
@@ -80,5 +89,9 @@ def run_fetch_job():
 
                 db.commit()
                 logger.info(f"분석 완료: {video.title} ({video.video_id})")
+                time.sleep(3)  # YouTube rate limit 방지
     finally:
         db.close()
+
+
+# .venv/bin/python -c "from backend.scheduler import run_fetch_job; run_fetch_job()"

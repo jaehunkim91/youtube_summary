@@ -20,8 +20,8 @@ export function ChannelList({ channels, selected, onSelect }: Props) {
     <div>
       {channels.map((ch) => (
         <button
-          key={ch.channel_name}
-          onClick={() => onSelect(ch.channel_name)}
+          key={ch.channel_url}
+          onClick={() => onSelect(ch.channel_url)}
           style={{
             display: 'block',
             width: '100%',
@@ -29,12 +29,12 @@ export function ChannelList({ channels, selected, onSelect }: Props) {
             padding: '12px 16px',
             border: 'none',
             borderBottom: '1px solid #eee',
-            background: selected === ch.channel_name ? '#e8f0fe' : 'transparent',
+            background: selected === ch.channel_url ? '#e8f0fe' : 'transparent',
             cursor: 'pointer',
-            fontWeight: (selected === ch.channel_name ? 600 : 400) as number,
+            fontWeight: (selected === ch.channel_url ? 600 : 400) as number,
           }}
         >
-          <div style={{ fontSize: '14px', color: '#1a1a1a' }}>@{ch.channel_name}</div>
+          <div style={{ fontSize: '14px', color: '#1a1a1a' }}>{ch.channel_name}</div>
           <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
             영상 {ch.video_count}개
           </div>

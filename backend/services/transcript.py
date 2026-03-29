@@ -38,23 +38,21 @@ def extract_video_id(url: str) -> str:
     raise ValueError(f"Cannot extract video ID from URL: {url}")
 
 def get_transcript(video_id: str) -> TranscriptResult:
-    # Primary: youtube-transcript-api 1.x
+    # Primary: yt-dlp (Chrome 쿠키 + JS challenge solver로 IP 차단 우회)
+    try:
+        return _get_transcript_yt_dlp(video_id)
+    except Exception as e:
+        logger.warning(f"yt-dlp transcript failed for {video_id}: {e}")
+
+    # Fallback: youtube-transcript-api (IP 차단 없는 환경용)
     try:
         api = YouTubeTranscriptApi()
         fetched = api.fetch(video_id, languages=["ko", "en"])
         entries = fetched.to_raw_data()
         text = " ".join(e["text"] for e in entries)
         return TranscriptResult(text=text, chapters=None)
-    except (TranscriptsDisabled, NoTranscriptFound) as e:
-        logger.info(f"Primary transcript unavailable for {video_id}: {e}")
     except Exception as e:
-        logger.warning(f"Primary transcript failed for {video_id}: {e}")
-
-    # Fallback: yt-dlp
-    try:
-        return _get_transcript_yt_dlp(video_id)
-    except Exception as e:
-        logger.warning(f"yt-dlp fallback failed for {video_id}: {e}")
+        logger.warning(f"youtube-transcript-api fallback failed for {video_id}: {e}")
         raise TranscriptUnavailableError("이 영상의 자막을 가져올 수 없습니다") from e
 
 def _get_transcript_yt_dlp(video_id: str) -> TranscriptResult:
@@ -70,10 +68,11 @@ def _get_transcript_yt_dlp(video_id: str) -> TranscriptResult:
                 "--sub-format", "json3",
                 "--skip-download",
                 "--print-json",
+                "--impersonate", "chrome",
                 "-o", os.path.join(tmpdir, "%(id)s"),
                 url,
             ],
-            capture_output=True, text=True, timeout=60
+            capture_output=True, text=True, timeout=120
         )
         if result.returncode != 0:
             raise RuntimeError(f"yt-dlp failed: {result.stderr}")

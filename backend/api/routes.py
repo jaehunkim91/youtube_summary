@@ -2,19 +2,22 @@
 import json
 import logging
 from typing import Optional
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.db.database import get_db
-from backend.db.models import StockVideo
+from backend.db.models import StockVideo, StockMention
 from backend.api.schemas import (
     ChannelFeedItem,
     ChannelDetailResponse,
     VideoResponse,
     StockMentionResponse,
     RefreshResponse,
+    StockFeedItem,
+    StockDetailResponse,
+    StockOpinionItem,
 )
-from backend.services.channel import load_channels, parse_channel_name
+from backend.services.channel import load_channels
 from backend.scheduler import run_fetch_job
 
 logger = logging.getLogger(__name__)
@@ -36,18 +39,19 @@ def get_feed(db: Session = Depends(get_db)):
         channels = []
 
     result = []
-    for channel_url in channels:
-        channel_name = parse_channel_name(channel_url)
+    for entry in channels:
+        channel_url = entry["url"]
+        channel_name = entry["name"]
 
         latest = (
             db.query(StockVideo)
-            .filter(func.lower(StockVideo.channel_name) == channel_name.lower())
+            .filter(StockVideo.channel_url == channel_url)
             .order_by(StockVideo.published_at.desc())
             .first()
         )
         count = (
             db.query(func.count(StockVideo.id))
-            .filter(func.lower(StockVideo.channel_name) == channel_name.lower())
+            .filter(StockVideo.channel_url == channel_url)
             .scalar()
         )
 
@@ -56,24 +60,25 @@ def get_feed(db: Session = Depends(get_db)):
             channel_url=channel_url,
             video_count=count or 0,
             latest_video_title=latest.video_title if latest else None,
+            latest_video_title_ko=latest.video_title_ko if latest else None,
             latest_video_at=_dt_to_str(latest.published_at) if latest else None,
         ))
 
     return result
 
 
-@router.get("/feed/{channel_name}", response_model=ChannelDetailResponse)
-def get_channel_feed(channel_name: str, db: Session = Depends(get_db)):
+@router.get("/feed/detail", response_model=ChannelDetailResponse)
+def get_channel_feed(url: str = Query(...), db: Session = Depends(get_db)):
     videos = (
         db.query(StockVideo)
-        .filter(func.lower(StockVideo.channel_name) == channel_name.lower())
+        .filter(StockVideo.channel_url == url)
         .order_by(StockVideo.published_at.desc())
         .limit(50)
         .all()
     )
 
-    channel_url = videos[0].channel_url if videos else None
-    actual_name = videos[0].channel_name if videos else channel_name
+    channel_url = videos[0].channel_url if videos else url
+    actual_name = videos[0].channel_name if videos else url
 
     video_responses = []
     for v in videos:
@@ -88,7 +93,9 @@ def get_channel_feed(channel_name: str, db: Session = Depends(get_db)):
         video_responses.append(VideoResponse(
             video_id=v.video_id,
             title=v.video_title,
+            title_ko=v.video_title_ko,
             published_at=_dt_to_str(v.published_at),
+            analyzed_at=_dt_to_str(v.created_at),
             summary=v.summary,
             stocks=stocks,
         ))
@@ -98,6 +105,52 @@ def get_channel_feed(channel_name: str, db: Session = Depends(get_db)):
         channel_url=channel_url,
         videos=video_responses,
     )
+
+
+@router.get("/stocks", response_model=list[StockFeedItem])
+def get_stocks(db: Session = Depends(get_db)):
+    rows = (
+        db.query(
+            StockMention.stock_name,
+            func.count(StockMention.id).label("mention_count"),
+            func.max(StockVideo.published_at).label("latest_mentioned_at"),
+        )
+        .join(StockVideo, StockMention.stock_video_id == StockVideo.id)
+        .group_by(StockMention.stock_name)
+        .order_by(func.count(StockMention.id).desc())
+        .all()
+    )
+    return [
+        StockFeedItem(
+            name=r.stock_name,
+            mention_count=r.mention_count,
+            latest_mentioned_at=_dt_to_str(r.latest_mentioned_at),
+        )
+        for r in rows
+    ]
+
+
+@router.get("/stocks/detail", response_model=StockDetailResponse)
+def get_stock_detail(name: str = Query(...), db: Session = Depends(get_db)):
+    rows = (
+        db.query(StockMention, StockVideo)
+        .join(StockVideo, StockMention.stock_video_id == StockVideo.id)
+        .filter(StockMention.stock_name == name)
+        .order_by(StockVideo.published_at.desc())
+        .all()
+    )
+    opinions = [
+        StockOpinionItem(
+            channel_name=video.channel_name,
+            sentiment=mention.sentiment,
+            opinion=mention.opinion,
+            video_title=video.video_title,
+            video_title_ko=video.video_title_ko,
+            published_at=_dt_to_str(video.published_at),
+        )
+        for mention, video in rows
+    ]
+    return StockDetailResponse(stock_name=name, opinions=opinions)
 
 
 @router.post("/refresh", status_code=202, response_model=RefreshResponse)

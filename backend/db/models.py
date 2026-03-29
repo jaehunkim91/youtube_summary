@@ -16,6 +16,7 @@ class StockVideo(Base):
     channel_name = Column(String, nullable=False)
     video_id = Column(String, nullable=False, unique=True)
     video_title = Column(String, nullable=False)
+    video_title_ko = Column(String, nullable=True)
     published_at = Column(DateTime, nullable=False)
     summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))

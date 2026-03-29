@@ -18,12 +18,13 @@ def _mock_response(text: str):
 
 
 def test_analyze_video_success():
-    mock_json = '{"summary": "테스트 요약", "stocks": [{"name": "삼성전자", "sentiment": "positive", "opinion": "실적 기대"}]}'
+    mock_json = '{"title_ko": "한국어 제목", "summary": "테스트 요약", "stocks": [{"name": "삼성전자", "sentiment": "positive", "opinion": "실적 기대"}]}'
     with patch("backend.services.stock_analyzer.Anthropic") as MockClaude:
         MockClaude.return_value.messages.create.return_value = _mock_response(mock_json)
-        result = analyze_video("테스트 자막")
+        result = analyze_video("테스트 자막", "English Title")
 
     assert isinstance(result, AnalysisResult)
+    assert result.title_ko == "한국어 제목"
     assert result.summary == "테스트 요약"
     assert len(result.stocks) == 1
     assert result.stocks[0].name == "삼성전자"
@@ -32,7 +33,7 @@ def test_analyze_video_success():
 
 
 def test_analyze_video_no_stocks():
-    mock_json = '{"summary": "테스트 요약", "stocks": []}'
+    mock_json = '{"title_ko": "제목", "summary": "테스트 요약", "stocks": []}'
     with patch("backend.services.stock_analyzer.Anthropic") as MockClaude:
         MockClaude.return_value.messages.create.return_value = _mock_response(mock_json)
         result = analyze_video("테스트 자막")
@@ -41,7 +42,7 @@ def test_analyze_video_no_stocks():
 
 
 def test_analyze_video_strips_markdown_fence():
-    mock_text = '```json\n{"summary": "요약", "stocks": []}\n```'
+    mock_text = '```json\n{"title_ko": "제목", "summary": "요약", "stocks": []}\n```'
     with patch("backend.services.stock_analyzer.Anthropic") as MockClaude:
         MockClaude.return_value.messages.create.return_value = _mock_response(mock_text)
         result = analyze_video("자막")
@@ -51,7 +52,7 @@ def test_analyze_video_strips_markdown_fence():
 
 def test_analyze_video_truncates_long_transcript():
     """Verify transcript longer than 12000 chars is truncated before sending to Claude."""
-    mock_json = '{"summary": "요약", "stocks": []}'
+    mock_json = '{"title_ko": "제목", "summary": "요약", "stocks": []}'
     long_transcript = "X" * 20000
     with patch("backend.services.stock_analyzer.Anthropic") as MockClaude:
         MockClaude.return_value.messages.create.return_value = _mock_response(mock_json)

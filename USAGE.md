@@ -24,6 +24,19 @@ cd ../frontend
 npm install
 ```
 
+### 3. 채널 목록 설정
+
+프로젝트 루트의 `channels.json` 파일에 분석할 YouTube 채널 URL을 추가합니다:
+
+```json
+[
+  "https://www.youtube.com/@GODofIT",
+  "https://www.youtube.com/@another_channel"
+]
+```
+
+> `@핸들` 형식의 URL만 지원합니다. 채널 추가/삭제는 이 파일을 직접 편집하면 됩니다.
+
 ---
 
 ## 매일 사용하기
@@ -46,13 +59,14 @@ npm run dev
 
 ### 사용 방법
 
-1. YouTube 영상 URL을 입력창에 붙여넣기
-2. **요약하기** 버튼 클릭
-3. 자막 추출 → 요약 생성 순서로 진행 (영상 길이에 따라 10~30초 소요)
-4. 챕터별 요약이 아코디언 형태로 표시됨 — 클릭하면 펼쳐짐
-5. 왼쪽 사이드바에서 이전 요약 기록 확인 및 재열람 가능
+1. 왼쪽 사이드바에서 채널 클릭
+2. 오른쪽 패널에서 최근 영상 목록 확인
+3. 각 영상 카드에서 AI 요약 및 언급 종목(긍정/부정/중립) 확인
+4. **새로고침** 버튼 클릭 시 즉시 최신 영상 수집 및 분석 실행
 
-> **같은 URL 재요청 시** 저장된 결과를 즉시 반환합니다 (Claude API 호출 없음)
+> **자동 수집:** 매일 09:00 KST에 `channels.json`에 등록된 채널의 최근 1일 영상을 자동으로 수집·분석합니다.
+
+> **중복 방지:** 동일한 영상은 재분석하지 않습니다.
 
 ---
 
@@ -76,26 +90,32 @@ cd /Users/sujin/PycharmProjects/youtube_summary
 
 ## 오류 대처
 
-| 오류 메시지 | 원인 | 해결 방법 |
-|-------------|------|-----------|
-| 자막을 가져올 수 없습니다 | 자막 없는 영상 또는 비공개 영상 | 자막이 있는 다른 영상 시도 |
-| 요약 생성에 실패했습니다 | Claude API 오류 (키 문제 등) | `.env`의 API 키 확인 |
-| 유효한 YouTube URL이 아닙니다 | 잘못된 URL 형식 | `youtube.com/watch?v=` 또는 `youtu.be/` 형식 사용 |
-| 요청 시간이 초과되었습니다 | 네트워크 느림 또는 영상이 너무 긴 경우 | 잠시 후 재시도 |
+| 오류 상황 | 원인 | 해결 방법 |
+|-----------|------|-----------|
+| 채널이 목록에 표시되지 않음 | `channels.json` 파일 없거나 비어있음 | `channels.json`에 채널 URL 추가 |
+| 영상이 없다고 표시됨 | 최근 1일 이내 업로드된 영상 없음 | 정상 상태. 다음 날 재확인 |
+| 새로고침 후에도 영상 없음 | yt-dlp 오류 또는 채널 URL 형식 오류 | `@핸들` 형식인지 확인, 서버 로그 확인 |
+| 종목 분석이 비어있음 | 영상에서 종목 언급 없음 | 정상 상태 (요약만 표시됨) |
+| Claude API 오류 | API 키 문제 | `.env`의 `ANTHROPIC_API_KEY` 확인 |
 
 ---
 
-## 지원 URL 형식
+## 지원 채널 URL 형식
 
 ```
-https://www.youtube.com/watch?v=dQw4w9WgXcQ
-https://youtube.com/watch?v=dQw4w9WgXcQ
-https://youtu.be/dQw4w9WgXcQ
+https://www.youtube.com/@채널핸들
 ```
+
+예시:
+```
+https://www.youtube.com/@GODofIT
+```
+
+> `/channel/UCxxxx` 형식은 지원하지 않습니다.
 
 ---
 
 ## 데이터 저장 위치
 
-요약 결과는 `backend/youtube_summary.db` (SQLite 파일)에 저장됩니다.
-삭제하면 히스토리가 초기화됩니다.
+분석 결과는 `backend/youtube_summary.db` (SQLite 파일)에 저장됩니다.
+삭제하면 모든 분석 히스토리가 초기화됩니다.

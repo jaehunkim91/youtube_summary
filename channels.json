@@ -1,3 +1,12 @@
 [
-  "https://www.youtube.com/@GODofIT"
+  {"url": "https://www.youtube.com/@hs_academy", "name": "이효석아카데미"},
+  {"url": "https://www.youtube.com/@GODofIT.", "name": "IT의 신 이형수"},
+  {"url": "https://www.youtube.com/@wsaj/videos", "name": "월가아재의 과학적 투자"},
+  {"url": "https://www.youtube.com/@%EA%B9%80%EB%8B%A8%ED%85%8C", "name": "김단테"},
+  {"url": "https://www.youtube.com/@orlandocampus", "name": "올랜도 킴 미국주식"},
+  {"url": "https://www.youtube.com/@koreanstockrider", "name": "증시각도기TV"},
+  {"url": "https://www.youtube.com/@moneydo", "name": "전인구경제연구소"},
+  {"url": "https://www.youtube.com/@sosumonkey", "name": "소수몽키"},
+  {"url": "https://www.youtube.com/@talentinvestment", "name": "달란트투자"},
+  {"url": "https://www.youtube.com/@MK_Invest", "name": "매경 월가월부"}
 ]
