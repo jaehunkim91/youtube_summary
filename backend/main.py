@@ -15,8 +15,8 @@ async def lifespan(app: FastAPI):
     _scheduler = None
     if not os.getenv("DISABLE_SCHEDULER"):
         from backend.scheduler import scheduler, run_fetch_job
-        from apscheduler.triggers.cron import CronTrigger
-        scheduler.add_job(run_fetch_job, CronTrigger(hour=0, minute=0, timezone="UTC"))
+        from apscheduler.triggers.interval import IntervalTrigger
+        scheduler.add_job(run_fetch_job, IntervalTrigger(hours=3))
         scheduler.start()
         _scheduler = scheduler
 
