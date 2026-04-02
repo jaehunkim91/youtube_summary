@@ -55,13 +55,14 @@ def get_transcript(video_id: str) -> TranscriptResult:
         logger.warning(f"youtube-transcript-api fallback failed for {video_id}: {e}")
         raise TranscriptUnavailableError("이 영상의 자막을 가져올 수 없습니다") from e
 
+COOKIES_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "cookies.txt")
+
 def _get_transcript_yt_dlp(video_id: str) -> TranscriptResult:
     url = f"https://www.youtube.com/watch?v={video_id}"
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Get video metadata (chapters) and download subtitle files
-        result = subprocess.run(
-            [
+        cmd = [
                 "yt-dlp",
                 "--write-auto-sub", "--write-sub",
                 "--sub-lang", "ko,en",
@@ -70,8 +71,13 @@ def _get_transcript_yt_dlp(video_id: str) -> TranscriptResult:
                 "--print-json",
                 "--impersonate", "chrome",
                 "-o", os.path.join(tmpdir, "%(id)s"),
-                url,
-            ],
+        ]
+        if os.path.exists(COOKIES_PATH):
+            cmd.extend(["--cookies", COOKIES_PATH])
+        cmd.append(url)
+
+        result = subprocess.run(
+            cmd,
             capture_output=True, text=True, timeout=120
         )
         if result.returncode != 0:
