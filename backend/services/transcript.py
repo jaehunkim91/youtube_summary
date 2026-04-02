@@ -70,6 +70,8 @@ def _get_transcript_yt_dlp(video_id: str) -> TranscriptResult:
                 "--skip-download",
                 "--print-json",
                 "--impersonate", "chrome",
+                "--remote-components", "ejs:github",
+                "--ignore-errors",
                 "-o", os.path.join(tmpdir, "%(id)s"),
         ]
         if os.path.exists(COOKIES_PATH):
