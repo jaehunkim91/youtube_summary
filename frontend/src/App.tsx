@@ -4,10 +4,11 @@ import { ChannelList } from './components/ChannelList'
 import { StockList } from './components/StockList'
 import { VideoCard } from './components/VideoCard'
 import { StockDetailView } from './components/StockDetailView'
+import { RequestPage } from './components/RequestPage'
 import { getFeed, getChannelFeed, getStockFeed, getStockDetail } from './api/client'
 import type { ChannelFeedItem, ChannelDetail, StockFeedItem, StockDetail } from './api/client'
 
-type Tab = 'channel' | 'stock'
+type Tab = 'channel' | 'stock' | 'request'
 
 const TAB_STYLE = (active: boolean): React.CSSProperties => ({
   flex: 1,
@@ -101,11 +102,13 @@ export default function App() {
         <div style={{ display: 'flex', borderBottom: '1px solid #eee', flexShrink: 0 }}>
           <button style={TAB_STYLE(tab === 'channel')} onClick={() => handleTabChange('channel')}>채널</button>
           <button style={TAB_STYLE(tab === 'stock')} onClick={() => handleTabChange('stock')}>종목</button>
+          <button style={TAB_STYLE(tab === 'request')} onClick={() => handleTabChange('request')}>요청</button>
         </div>
 
-        {tab === 'channel' ? (
+        {tab === 'channel' && (
           <ChannelList channels={channels} selected={selectedChannel} onSelect={selectChannel} />
-        ) : (
+        )}
+        {tab === 'stock' && (
           <StockList stocks={stocks} selected={selectedStock} onSelect={selectStock} />
         )}
       </div>
@@ -147,6 +150,8 @@ export default function App() {
           {!loading && tab === 'channel' && !channelDetail && channels.length === 0 && (
             <div style={{ color: '#888' }}>channels.json에 채널을 추가해주세요.</div>
           )}
+
+          {tab === 'request' && <RequestPage />}
         </div>
       </div>
     </div>

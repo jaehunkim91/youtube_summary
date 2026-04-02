@@ -40,3 +40,13 @@ class StockMention(Base):
     opinion = Column(Text, nullable=False)
 
     stock_video = relationship("StockVideo", back_populates="mentions")
+
+
+class ChannelRequest(Base):
+    __tablename__ = "channel_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nickname = Column(String(50), nullable=False)
+    channel_name = Column(String(50), nullable=False)
+    content = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))

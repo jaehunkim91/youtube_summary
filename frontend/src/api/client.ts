@@ -74,3 +74,33 @@ export async function getStockDetail(name: string): Promise<StockDetail> {
   if (!resp.ok) throw new Error('종목 상세를 불러오지 못했습니다')
   return resp.json()
 }
+
+export interface ChannelRequest {
+  id: number
+  nickname: string
+  channel_name: string
+  content: string | null
+  created_at: string
+}
+
+export interface ChannelRequestCreate {
+  nickname: string
+  channel_name: string
+  content?: string
+}
+
+export async function getChannelRequests(): Promise<ChannelRequest[]> {
+  const resp = await fetch('/api/channel-requests')
+  if (!resp.ok) throw new Error('요청 목록을 불러오지 못했습니다')
+  return resp.json()
+}
+
+export async function postChannelRequest(data: ChannelRequestCreate): Promise<ChannelRequest> {
+  const resp = await fetch('/api/channel-requests', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!resp.ok) throw new Error('요청 제출에 실패했습니다')
+  return resp.json()
+}

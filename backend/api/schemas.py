@@ -1,6 +1,6 @@
 # backend/api/schemas.py
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class StockMentionResponse(BaseModel):
@@ -56,3 +56,24 @@ class StockOpinionItem(BaseModel):
 class StockDetailResponse(BaseModel):
     stock_name: str
     opinions: list[StockOpinionItem]
+
+
+class ChannelRequestCreate(BaseModel):
+    nickname: str
+    channel_name: str
+    content: Optional[str] = None
+
+    @field_validator('nickname', 'channel_name')
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError('공백만 입력할 수 없습니다')
+        return v
+
+
+class ChannelRequestResponse(BaseModel):
+    id: int
+    nickname: str
+    channel_name: str
+    content: Optional[str]
+    created_at: str

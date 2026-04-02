@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.db.database import get_db
-from backend.db.models import StockVideo, StockMention
+from backend.db.models import StockVideo, StockMention, ChannelRequest
 from backend.api.schemas import (
     ChannelFeedItem,
     ChannelDetailResponse,
@@ -16,6 +16,8 @@ from backend.api.schemas import (
     StockFeedItem,
     StockDetailResponse,
     StockOpinionItem,
+    ChannelRequestCreate,
+    ChannelRequestResponse,
 )
 from backend.services.channel import load_channels
 from backend.scheduler import run_fetch_job
@@ -157,3 +159,42 @@ def get_stock_detail(name: str = Query(...), db: Session = Depends(get_db)):
 def refresh(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_fetch_job)
     return RefreshResponse(status="refresh started")
+
+
+@router.post("/channel-requests", status_code=201, response_model=ChannelRequestResponse)
+def create_channel_request(body: ChannelRequestCreate, db: Session = Depends(get_db)):
+    req = ChannelRequest(
+        nickname=body.nickname.strip(),
+        channel_name=body.channel_name.strip(),
+        content=body.content.strip() if body.content else None,
+    )
+    db.add(req)
+    db.commit()
+    db.refresh(req)
+    return ChannelRequestResponse(
+        id=req.id,
+        nickname=req.nickname,
+        channel_name=req.channel_name,
+        content=req.content,
+        created_at=_dt_to_str(req.created_at),
+    )
+
+
+@router.get("/channel-requests", response_model=list[ChannelRequestResponse])
+def list_channel_requests(db: Session = Depends(get_db)):
+    rows = (
+        db.query(ChannelRequest)
+        .order_by(ChannelRequest.created_at.desc())
+        .limit(100)
+        .all()
+    )
+    return [
+        ChannelRequestResponse(
+            id=r.id,
+            nickname=r.nickname,
+            channel_name=r.channel_name,
+            content=r.content,
+            created_at=_dt_to_str(r.created_at),
+        )
+        for r in rows
+    ]
